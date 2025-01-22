@@ -2,16 +2,18 @@ return {
   'NeogitOrg/neogit',
   dependencies = {
     'nvim-lua/plenary.nvim', -- required
-    'sindrets/diffview.nvim', -- optional - Diff integration
+    'sindrets/diffview.nvim',
 
     -- Only one of these is needed.
-    'nvim-telescope/telescope.nvim', -- optional
-    'ibhagwan/fzf-lua', -- optional
-    'echasnovski/mini.pick', -- optional
+    'nvim-telescope/telescope.nvim',
   },
   config = function()
     require('neogit').setup {
       graph_style = 'unicode',
+      integrations = {
+        telescope = true,
+        diffview = true,
+      },
     }
     vim.keymap.set('n', '<leader>G', function()
       require('neogit').open()
