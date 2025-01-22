@@ -179,6 +179,15 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
+-- Disable line numbers when in Terminal Mode
+vim.api.nvim_create_autocmd('TermOpen', {
+  group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
+  callback = function()
+    vim.opt.number = false
+    vim.opt.relativenumber = false
+  end,
+})
+
 -- TIP: Disable arrow keys in normal mode
 -- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
 -- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
@@ -472,6 +481,8 @@ require('lazy').setup({
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
+      -- Shows signature help
+      'ray-x/lsp_signature.nvim',
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -595,6 +606,12 @@ require('lazy').setup({
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
           end
+          require('lsp_signature').on_attach({
+            bind = true,
+            handler_opts = {
+              border = 'rounded',
+            },
+          }, event.buf)
         end,
       })
 
@@ -648,7 +665,7 @@ require('lazy').setup({
             python = {
               analysis = {
                 -- Ignore all files for analysis to exclusively use Ruff for linting
-                ignore = { '*' },
+                -- ignore = { '*' },
               },
             },
           },
@@ -712,6 +729,20 @@ require('lazy').setup({
       }
     end,
   },
+
+  -- {
+  --   'ray-x/lsp_signature.nvim',
+  --   event = 'InsertEnter',
+  --   opts = {
+  --     bind = true,
+  --     handler_opts = {
+  --       border = 'rounded',
+  --     },
+  --   },
+  --   config = function(_, opts)
+  --     require('lsp_signature').setup(opts)
+  --   end,
+  -- },
 
   { -- Autoformat
     'stevearc/conform.nvim',
