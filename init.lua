@@ -183,8 +183,9 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
   callback = function()
-    vim.opt.number = false
-    vim.opt.relativenumber = false
+    vim.opt_local.number = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.signcolumn = 'no'
   end,
 })
 
@@ -729,21 +730,27 @@ require('lazy').setup({
       }
     end,
   },
-
-  -- {
-  --   'ray-x/lsp_signature.nvim',
-  --   event = 'InsertEnter',
-  --   opts = {
-  --     bind = true,
-  --     handler_opts = {
-  --       border = 'rounded',
-  --     },
-  --   },
-  --   config = function(_, opts)
-  --     require('lsp_signature').setup(opts)
-  --   end,
-  -- },
-
+  -- Set up Venv selection from within NeoVim
+  {
+    'linux-cultist/venv-selector.nvim',
+    dependencies = { 'neovim/nvim-lspconfig', 'nvim-telescope/telescope.nvim' }, --'mfussenegger/nvim-dap-python' },
+    opts = {
+      -- Your options go here
+      -- name = "venv",
+      -- auto_refresh = false
+    },
+    -- config = function()
+    --   vim.keymap.set('n', '<leader>vd', require('venv-selector').deactivate, { desc = 'Selected [v]irtualEnv [d]eactivate' })
+    -- end,
+    branch = 'regexp',
+    event = 'VeryLazy', -- Optional: needed only if you want to type `:VenvSelect` without a keymapping
+    keys = {
+      -- Keymap to open VenvSelector to pick a venv.
+      { '<leader>vs', '<cmd>VenvSelect<cr>' },
+      -- Keymap to retrieve the venv from a cache (the one previously used for the same project directory).
+      { '<leader>vc', '<cmd>VenvSelectCached<cr>' },
+    },
+  },
   { -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
