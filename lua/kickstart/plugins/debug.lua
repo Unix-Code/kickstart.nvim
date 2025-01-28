@@ -22,7 +22,9 @@ return {
     'jay-babu/mason-nvim-dap.nvim',
 
     -- Add your own debuggers here
-    'leoluz/nvim-dap-go',
+    -- 'leoluz/nvim-dap-go',
+    'umfussenegger/nvim-dap-python',
+    'linux-cultist/venv-selector.nvim',
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
@@ -76,6 +78,13 @@ return {
       end,
       desc = 'Debug: See last session result.',
     },
+    -- {
+    --   '<leader>dr',
+    --   function()
+    --     require('dap').repl.open()
+    --   end,
+    --   desc = 'Debug: Open Repl',
+    -- },
   },
   config = function()
     local dap = require 'dap'
@@ -94,7 +103,8 @@ return {
       -- online, please don't ask me how to install them :)
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
-        'delve',
+        -- 'delve',
+        'python',
       },
     }
 
@@ -121,28 +131,45 @@ return {
     }
 
     -- Change breakpoint icons
-    -- vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
-    -- vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
-    -- local breakpoint_icons = vim.g.have_nerd_font
-    --     and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
-    --   or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
-    -- for type, icon in pairs(breakpoint_icons) do
-    --   local tp = 'Dap' .. type
-    --   local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
-    --   vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
-    -- end
+    vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
+    vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
+    local breakpoint_icons = vim.g.have_nerd_font
+        and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
+      or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
+    for type, icon in pairs(breakpoint_icons) do
+      local tp = 'Dap' .. type
+      local hl = (type == 'Stopped') and 'DapStop' or 'DapBreak'
+      vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
+    end
 
     dap.listeners.after.event_initialized['dapui_config'] = dapui.open
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
-    -- Install golang specific config
-    require('dap-go').setup {
-      delve = {
-        -- On Windows delve must be run attached or it crashes.
-        -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
-        detached = vim.fn.has 'win32' == 0,
-      },
-    }
+    -- require('dap-python').resolve_python = function()
+    --   vim.api.nvim_echo({ { 'test' } }, true, {})
+    --   return require('venv-selector').python()
+    -- end
+    local path = ' /Users/davidmalakh/.local/share/nvim/mason/packages/debugpy/venv/bin/python'
+    require('dap-python').setup(path)
+    require('dap-python').test_runner = 'pytest'
+    vim.keymap.set('n', '<leader>dm', function()
+      require('dap-python').test_method()
+    end, { desc = '[D]ebug [M]ethod' })
+    vim.keymap.set('n', '<leader>dc', function()
+      require('dap-python').test_class()
+    end, { desc = '[D]ebug [C]lass' })
+    vim.keymap.set('n', '<leader>dq', function()
+      require('dap').terminate()
+    end, { desc = '[D]ebugger [Q]uit' })
+
+    --    - Install golang specific config
+    --   require('dap-go').setup {
+    --     delve = {
+    --       -- On Windows delve must be run attached or it crashes.
+    --       -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
+    --       detached = vim.fn.has 'win32' == 0,
+    --     },
+    --   }
   end,
 }

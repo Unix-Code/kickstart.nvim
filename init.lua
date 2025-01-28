@@ -169,7 +169,10 @@ vim.opt.scrolloff = 10
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>dq', function()
+  require 'quicker'
+  vim.diagnostic.setloclist()
+end, { desc = 'Open [D]iagnostic [Q]uickfix list' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -367,6 +370,7 @@ require('lazy').setup({
           return vim.fn.executable 'make' == 1
         end,
       },
+      { 'nvim-telescope/telescope-dap.nvim' },
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
@@ -398,12 +402,12 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
-        -- pickers = {}
+        defaults = {
+          mappings = {
+            i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+          },
+        },
+        pickers = {},
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -414,6 +418,7 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'dap')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -450,6 +455,8 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      vim.keymap.set('n', '<leader>sb', require('telescope').extensions.dap.list_breakpoints, { desc = '[S]earch [B]reakpoints' })
     end,
   },
 
@@ -733,11 +740,23 @@ require('lazy').setup({
   -- Set up Venv selection from within NeoVim
   {
     'linux-cultist/venv-selector.nvim',
-    dependencies = { 'neovim/nvim-lspconfig', 'nvim-telescope/telescope.nvim' }, --'mfussenegger/nvim-dap-python' },
+    dependencies = {
+      'mfussenegger/nvim-dap',
+      {
+        'mfussenegger/nvim-dap-python',
+      },
+      'neovim/nvim-lspconfig',
+      'nvim-telescope/telescope.nvim',
+    }, --'mfussenegger/nvim-dap-python' },
     opts = {
       -- Your options go here
       -- name = "venv",
       -- auto_refresh = false
+      settings = {
+        options = {
+          notify_user_on_venv_activation = true,
+        },
+      },
     },
     -- config = function()
     --   vim.keymap.set('n', '<leader>vd', require('venv-selector').deactivate, { desc = 'Selected [v]irtualEnv [d]eactivate' })
@@ -825,12 +844,12 @@ require('lazy').setup({
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
+          },
         },
       },
       'saadparwaiz1/cmp_luasnip',
@@ -840,6 +859,7 @@ require('lazy').setup({
       --  into multiple repos for maintenance purposes.
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
+      'rcarriga/cmp-dap',
     },
     config = function()
       -- See `:help cmp`
@@ -848,13 +868,15 @@ require('lazy').setup({
       luasnip.config.setup {}
 
       cmp.setup {
+        enabled = function()
+          return vim.api.nvim_get_option_value('buftype', {}) ~= 'prompt' or require('cmp_dap').is_dap_buffer()
+        end,
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
           end,
         },
         completion = { completeopt = 'menu,menuone,noinsert' },
-
         -- For an understanding of why these mappings were
         -- chosen, you will need to read `:help ins-completion`
         --
@@ -918,6 +940,12 @@ require('lazy').setup({
           { name = 'path' },
         },
       }
+
+      require('cmp').setup.filetype({ 'dap-repl', 'dapui_watches', 'dapui_hover' }, {
+        sources = {
+          { name = 'dap' },
+        },
+      })
     end,
   },
 
@@ -1013,9 +1041,51 @@ require('lazy').setup({
   --
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
-  --
+  {
+    'stevearc/quicker.nvim',
+    event = 'FileType qf',
+    keys = {
+      {
+        '<leader>q',
+        function()
+          require('quicker').toggle()
+        end,
+        mode = 'n',
+        desc = 'Toggle [Q]uickfix',
+      },
+      {
+        '<leader>l',
+        function()
+          require('quicker').toggle { loclist = true }
+        end,
+        mode = 'n',
+        desc = 'Toggle Quickfix [L]oclist',
+      },
+    },
+    ---@module "quicker"
+    ---@type quicker.SetupOptions
+    opts = {
+      keys = {
+        {
+          '>',
+          function()
+            require('quicker').expand { before = 2, after = 2, add_to_existing = true }
+          end,
+          desc = 'Expand quickfix context',
+        },
+        {
+          '<',
+          function()
+            require('quicker').collapse()
+          end,
+          desc = 'Collapse quickfix context',
+        },
+      },
+    },
+  },
+
   require 'custom.plugins.git', -- Use Git custom plugin config...
-  -- require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
