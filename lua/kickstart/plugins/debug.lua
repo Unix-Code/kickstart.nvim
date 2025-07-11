@@ -23,7 +23,7 @@ return {
 
     -- Add your own debuggers here
     -- 'leoluz/nvim-dap-go',
-    'umfussenegger/nvim-dap-python',
+    'mfussenegger/nvim-dap-python',
     'linux-cultist/venv-selector.nvim',
   },
   keys = {
@@ -154,10 +154,10 @@ return {
     require('dap-python').setup(path)
     require('dap-python').test_runner = 'pytest'
     vim.keymap.set('n', '<leader>dm', function()
-      require('dap-python').test_method()
+      require('dap-python').test_method { config = { justMyCode = false } }
     end, { desc = '[D]ebug [M]ethod' })
     vim.keymap.set('n', '<leader>dc', function()
-      require('dap-python').test_class()
+      require('dap-python').test_class { config = { justMyCode = false } }
     end, { desc = '[D]ebug [C]lass' })
     vim.keymap.set('n', '<leader>dq', function()
       require('dap').terminate()

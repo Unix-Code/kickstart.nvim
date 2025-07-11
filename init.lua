@@ -161,6 +161,13 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Open folds by default (upto 99 levels lol)
+vim.opt.foldlevel = 99
+
+-- Treesitter informed folds markers
+vim.wo.foldmethod = 'expr'
+vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -372,6 +379,9 @@ require('lazy').setup({
       },
       { 'nvim-telescope/telescope-dap.nvim' },
       { 'nvim-telescope/telescope-ui-select.nvim' },
+      {
+        'nvim-telescope/telescope-live-grep-args.nvim',
+      },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
@@ -419,6 +429,7 @@ require('lazy').setup({
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
       pcall(require('telescope').load_extension, 'dap')
+      pcall(require('telescope').load_extension, 'live_grep_args')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -456,6 +467,7 @@ require('lazy').setup({
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
 
+      vim.keymap.set('n', '<leader>sag', require('telescope').extensions.live_grep_args.live_grep_args, { desc = '[S]earch with [A]rgs by [G]rep' })
       vim.keymap.set('n', '<leader>sb', require('telescope').extensions.dap.list_breakpoints, { desc = '[S]earch [B]reakpoints' })
     end,
   },
@@ -664,16 +676,19 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         ruff = {},
-        pyright = {
+        basedpyright = {
           settings = {
-            pyright = {
+            basedpyright = {
               -- Using Ruff's import organizer
               disableOrganizeImports = true,
-            },
-            python = {
               analysis = {
-                -- Ignore all files for analysis to exclusively use Ruff for linting
-                -- ignore = { '*' },
+                diagnosticSeverityOverrides = {
+                  reportUnusedCallResult = 'none',
+                  reportImplicitOverride = 'none',
+                  reportImplicitAbstractClass = 'error',
+                  reportExplicitAny = 'information',
+                  reportUnannotatedClassAttribute = 'information',
+                },
               },
             },
           },
@@ -687,6 +702,16 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        jsonnet_ls = {
+          cmd = {
+            'jsonnet-language-server',
+            '--jpath',
+            -- FIXME: Hard-coded Path
+            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_deploy/kensho_deploy/',
+            '--jpath',
+            '/Users/davidmalakh/devel/zentreefish/projects/infra/terraform/lib/',
+          },
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -702,6 +727,9 @@ require('lazy').setup({
             },
           },
         },
+
+        jsonls = {},
+        html = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -720,6 +748,9 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'htmlbeautifier', -- Used to format html
+        'deno', -- Currently only used to format json
+        'jsonnetfmt', -- Used to format jsonnet/libsonnet
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -755,6 +786,7 @@ require('lazy').setup({
       settings = {
         options = {
           notify_user_on_venv_activation = true,
+          activate_venv_in_terminal = false,
         },
       },
     },
@@ -804,11 +836,23 @@ require('lazy').setup({
       end,
       formatters = {
         ruff_format = {
-          command = 'ruff',
-          prepend_args = {
-            'format',
+          append_args = {
             '--config',
             '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
+          },
+        },
+        ruff_organize_imports = {
+          append_args = {
+            '--config',
+            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
+          },
+        },
+        jsonnetfmt = {
+          prepend_args = {
+            '--comment-style',
+            's',
+            '--string-style',
+            'd',
           },
         },
       },
@@ -816,7 +860,10 @@ require('lazy').setup({
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
-        python = { 'ruff_format' },
+        python = { 'ruff_organize_imports', 'ruff_format' },
+        html = { 'htmlbeautifier' },
+        json = { 'deno_fmt' },
+        jsonnet = { 'jsonnetfmt' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -859,6 +906,8 @@ require('lazy').setup({
       --  into multiple repos for maintenance purposes.
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
+      'hrsh7th/cmp-buffer',
+      'hrsh7th/cmp-cmdline',
       'rcarriga/cmp-dap',
     },
     config = function()
@@ -938,13 +987,37 @@ require('lazy').setup({
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           { name = 'path' },
+          { name = 'buffer' },
         },
       }
 
-      require('cmp').setup.filetype({ 'dap-repl', 'dapui_watches', 'dapui_hover' }, {
+      cmp.setup.filetype({ 'dap-repl', 'dapui_watches', 'dapui_hover' }, {
         sources = {
           { name = 'dap' },
         },
+      })
+
+      -- `/` cmdline setup.
+      cmp.setup.cmdline('/', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = {
+          { name = 'buffer' },
+        },
+      })
+
+      -- : cmdline setup
+      cmp.setup.cmdline(':', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = cmp.config.sources({
+          { name = 'path' },
+        }, {
+          {
+            name = 'cmdline',
+            option = {
+              ignore_cmds = { 'Man', '!' },
+            },
+          },
+        }),
       })
     end,
   },
@@ -1081,6 +1154,32 @@ require('lazy').setup({
           desc = 'Collapse quickfix context',
         },
       },
+    },
+  },
+
+  {
+    'iamcco/markdown-preview.nvim',
+    cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
+    ft = { 'markdown' },
+    build = function(plugin)
+      if vim.fn.executable 'npx' then
+        vim.cmd('!cd ' .. plugin.dir .. ' && cd app && npx --yes yarn install')
+      else
+        vim.cmd [[Lazy load markdown-preview.nvim]]
+        vim.fn['mkdp#util#install']()
+      end
+    end,
+    init = function()
+      if vim.fn.executable 'npx' then
+        vim.g.mkdp_filetypes = { 'markdown' }
+      end
+    end,
+  },
+  {
+    'rmagatti/goto-preview',
+    event = 'BufEnter',
+    opts = {
+      default_mappings = true,
     },
   },
 
