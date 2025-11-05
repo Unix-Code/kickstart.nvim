@@ -107,6 +107,9 @@ vim.opt.number = true
 --  Experiment for yourself to see if you like it!
 vim.opt.relativenumber = true
 
+-- Fixes indent in json files... for some reason?
+-- vim.opt.smartindent = true
+
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
 
@@ -174,6 +177,42 @@ vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+vim.api.nvim_create_user_command('CopyPath', function(context)
+  local full_path = vim.fn.glob '%:p'
+
+  local file_path = nil
+  if context['args'] == 'nameonly' then
+    file_path = vim.fn.fnamemodify(full_path, ':t')
+  end
+
+  -- get the file path relative to project root
+  if context['args'] == 'relative' then
+    local project_marker = { '.git', 'pyproject.toml' }
+    local project_root = vim.fs.root(0, project_marker)
+    if project_root == nil then
+      vim.print 'can not find project root'
+      return
+    end
+
+    file_path = string.gsub(full_path, project_root, '.')
+  end
+
+  if context['args'] == 'absolute' then
+    file_path = full_path
+  end
+
+  vim.fn.setreg('+', file_path)
+  vim.print 'Filepath copied to clipboard!'
+end, {
+  bang = false,
+  nargs = 1,
+  force = true,
+  desc = 'Copy current file path to clipboard',
+  complete = function()
+    return { 'nameonly', 'relative', 'absolute' }
+  end,
+})
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>dq', function()
@@ -708,7 +747,7 @@ require('lazy').setup({
             'jsonnet-language-server',
             '--jpath',
             -- FIXME: Hard-coded Path
-            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_deploy/kensho_deploy/',
+            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_deploy/kensho_deploy/kd.libsonnet',
             '--jpath',
             '/Users/davidmalakh/devel/zentreefish/projects/infra/terraform/lib/',
           },
