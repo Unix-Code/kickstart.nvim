@@ -267,6 +267,8 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+vim.keymap.set('n', '<leader>t', ':vsplit | terminal<CR>i', { silent = true })
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -715,6 +717,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
+        biome = {},
         ruff = {},
         basedpyright = {
           settings = {
@@ -768,8 +771,8 @@ require('lazy').setup({
           },
         },
 
-        jsonls = {},
-        html = {},
+        -- jsonls = {},
+        -- html = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -789,7 +792,6 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'htmlbeautifier', -- Used to format html
-        'deno', -- Currently only used to format json
         'jsonnetfmt', -- Used to format jsonnet/libsonnet
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -826,14 +828,13 @@ require('lazy').setup({
       settings = {
         options = {
           notify_user_on_venv_activation = true,
-          activate_venv_in_terminal = false,
+          activate_venv_in_terminal = true,
         },
       },
     },
     -- config = function()
     --   vim.keymap.set('n', '<leader>vd', require('venv-selector').deactivate, { desc = 'Selected [v]irtualEnv [d]eactivate' })
     -- end,
-    branch = 'regexp',
     event = 'VeryLazy', -- Optional: needed only if you want to type `:VenvSelect` without a keymapping
     keys = {
       -- Keymap to open VenvSelector to pick a venv.
@@ -895,6 +896,17 @@ require('lazy').setup({
             'd',
           },
         },
+        biome = {
+          command = 'biome',
+          args = {
+            'format',
+            '--indent-style',
+            'space',
+            '--write',
+            '--stdin-file-path',
+            '$FILENAME',
+          },
+        },
       },
       formatters_by_ft = {
         lua = { 'stylua' },
@@ -902,7 +914,7 @@ require('lazy').setup({
         -- python = { "isort", "black" },
         python = { 'ruff_organize_imports', 'ruff_format' },
         html = { 'htmlbeautifier' },
-        json = { 'deno_fmt' },
+        json = { 'biome' },
         jsonnet = { 'jsonnetfmt' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
