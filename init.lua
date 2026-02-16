@@ -745,16 +745,16 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
-        jsonnet_ls = {
-          cmd = {
-            'jsonnet-language-server',
-            '--jpath',
-            -- FIXME: Hard-coded Path
-            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_deploy/kensho_deploy/kd.libsonnet',
-            '--jpath',
-            '/Users/davidmalakh/devel/zentreefish/projects/infra/terraform/lib/',
-          },
-        },
+        -- jsonnet_ls = {
+        --   cmd = {
+        --     'jsonnet-language-server',
+        --     -- '--jpath',
+        --     -- -- FIXME: Hard-coded Path
+        --     -- '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_deploy/kensho_deploy/kd.libsonnet',
+        --     -- '--jpath',
+        --     -- '/Users/davidmalakh/devel/zentreefish/projects/infra/terraform/lib/',
+        --   },
+        -- },
 
         lua_ls = {
           -- cmd = { ... },
@@ -792,7 +792,7 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'htmlbeautifier', -- Used to format html
-        'jsonnetfmt', -- Used to format jsonnet/libsonnet
+        -- 'jsonnetfmt', -- Used to format jsonnet/libsonnet
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -877,25 +877,25 @@ require('lazy').setup({
       end,
       formatters = {
         ruff_format = {
-          append_args = {
-            '--config',
-            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
-          },
+          -- append_args = {
+          --   '--config',
+          --   '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
+          -- },
         },
         ruff_organize_imports = {
-          append_args = {
-            '--config',
-            '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
-          },
+          -- append_args = {
+          --   '--config',
+          --   '/Users/davidmalakh/devel/zentreefish/klib/pkgs/kensho_lint/kensho_lint/pyproject.toml',
+          -- },
         },
-        jsonnetfmt = {
-          prepend_args = {
-            '--comment-style',
-            's',
-            '--string-style',
-            'd',
-          },
-        },
+        -- jsonnetfmt = {
+        --   prepend_args = {
+        --     '--comment-style',
+        --     's',
+        --     '--string-style',
+        --     'd',
+        --   },
+        -- },
         biome = {
           command = 'biome',
           args = {
@@ -915,7 +915,7 @@ require('lazy').setup({
         python = { 'ruff_organize_imports', 'ruff_format' },
         html = { 'htmlbeautifier' },
         json = { 'biome' },
-        jsonnet = { 'jsonnetfmt' },
+        -- jsonnet = { 'jsonnetfmt' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
@@ -1134,9 +1134,6 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
       ensure_installed = { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
