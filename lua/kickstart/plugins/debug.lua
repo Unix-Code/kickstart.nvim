@@ -150,7 +150,7 @@ return {
     --   vim.api.nvim_echo({ { 'test' } }, true, {})
     --   return require('venv-selector').python()
     -- end
-    local path = ' /Users/davidmalakh/.local/share/nvim/mason/packages/debugpy/venv/bin/python'
+    local path = '$HOME/.local/share/nvim/mason/packages/debugpy/venv/bin/python'
     require('dap-python').setup(path)
     require('dap-python').test_runner = 'pytest'
     vim.keymap.set('n', '<leader>dm', function()
